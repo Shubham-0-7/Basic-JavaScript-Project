@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Car Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #333;
+        }
+        .game-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            margin: auto;
+            background: #555;
+            overflow: hidden;
+            border: 2px solid #fff;
+        }
+        .player-car {
+            position: absolute;
+            bottom: 20px;
+            left: 175px;
+            width: 50px;
+            height: 100px;
+            background: red;
+        }
+        .obstacle {
+            position: absolute;
+            width: 50px;
+            height: 100px;
+            background: blue;
+        }
+        .score-board {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .difficulty-selector {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="score-board">Score: <span id="score">0</span> | High Score: <span id="high-score">0</span></div>
+        <div class="difficulty-selector">
+            <label for="difficulty">Difficulty: </label>
+            <select id="difficulty">
+                <option value="2">Easy</option>
+                <option value="4" selected>Medium</option>
+                <option value="6">Hard</option>
+            </select>
+        </div>
+        <div class="player-car"></div>
+    </div>
+
+    <script>
+        const gameContainer = document.querySelector(".game-container");
+        const playerCar = document.querySelector(".player-car");
+        const scoreDisplay = document.getElementById("score");
+        const highScoreDisplay = document.getElementById("high-score");
+        const difficultySelector = document.getElementById("difficulty");
+
+        let playerPositionX = 175;
+        let playerPositionY = 500;
+        let moveSpeed = 25;
+        let obstacleSpeed = parseInt(difficultySelector.value);
+        let gameRunning = true;
+        let score = 0;
+        let highScore = localStorage.getItem("highScore") || 0;
+        highScoreDisplay.textContent = highScore;
+
+        difficultySelector.addEventListener("change", () => {
+            obstacleSpeed = parseInt(difficultySelector.value);
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (!gameRunning) return;
+            if ((event.key === "ArrowLeft" || event.key === "a") && playerPositionX > 0) {
+                playerPositionX -= moveSpeed;
+            } else if ((event.key === "ArrowRight" || event.key === "d") && playerPositionX < 350) {
+                playerPositionX += moveSpeed;
+            } else if ((event.key === "ArrowUp" || event.key === "w") && playerPositionY > 0) {
+                playerPositionY -= moveSpeed;
+            } else if ((event.key === "ArrowDown" || event.key === "s") && playerPositionY < 500) {
+                playerPositionY += moveSpeed;
+            }
+            playerCar.style.left = playerPositionX + "px";
+            playerCar.style.top = playerPositionY + "px";
+        });
+
+        function createObstacle() {
+            if (!gameRunning) return;
+            const obstacle = document.createElement("div");
+            obstacle.classList.add("obstacle");
+            obstacle.style.left = Math.floor(Math.random() * 350) + "px";
+            obstacle.style.top = "-100px";
+            gameContainer.appendChild(obstacle);
+            moveObstacle(obstacle);
+        }
+
+        function moveObstacle(obstacle) {
+            let obstacleInterval = setInterval(() => {
+                if (!gameRunning) {
+                    clearInterval(obstacleInterval);
+                    return;
+                }
+                let obstacleTop = parseInt(obstacle.style.top);
+                obstacle.style.top = (obstacleTop + obstacleSpeed) + "px";
+                
+                if (obstacleTop > 600) {
+                    obstacle.remove();
+                    clearInterval(obstacleInterval);
+                    increaseScore();
+                }
+                checkCollision(obstacle, obstacleInterval);
+            }, 20);
+        }
+
+        function checkCollision(obstacle, interval) {
+            let playerRect = playerCar.getBoundingClientRect();
+            let obstacleRect = obstacle.getBoundingClientRect();
+            
+            if (
+                playerRect.left < obstacleRect.right &&
+                playerRect.right > obstacleRect.left &&
+                playerRect.top < obstacleRect.bottom &&
+                playerRect.bottom > obstacleRect.top
+            ) {
+                alert("Game Over! Score: " + score);
+                gameRunning = false;
+                clearInterval(interval);
+                updateHighScore();
+                location.reload();
+            }
+        }
+
+        function increaseScore() {
+            score += 10;
+            scoreDisplay.textContent = score;
+        }
+
+        function updateHighScore() {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("highScore", highScore);
+                highScoreDisplay.textContent = highScore;
+            }
+        }
+
+        setInterval(createObstacle, 2000);
+    </script>
+</body>
+</html>
